@@ -3,4 +3,7 @@
 ```bash
 pip install opencv-python
 ```
-<summary>使用 video_extractor.py 进行推理</summary>
+### 進行影片拆分
+```bash
+python video_extractor.py
+```
