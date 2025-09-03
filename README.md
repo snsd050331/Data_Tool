@@ -17,3 +17,6 @@ python video_extractor.py
 基於秒數(S)去提取影像
 ### 圖片格式
 支援 jpg / png / bmp 格式儲存
+### 命名格式
+以輸入影片名稱_frame_幀數進行命名  
+=> 使用者可以照自我需求更改程式中filename的命名格式
