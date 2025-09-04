@@ -144,7 +144,6 @@ if __name__ == "__main__":
     print("- 相對路徑: ../frames")
 
     # 設定影片路徑
-    print("\n")
     video_path = input("請輸入影片檔案路徑: ").strip('"')  # 去除可能的引號
    
     output_path = input("\n請輸入輸出資料夾路徑 (直接按Enter使用預設路徑): ").strip('"')
