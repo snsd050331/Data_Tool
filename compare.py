@@ -65,8 +65,8 @@ def sync_folders(reference_folder, target_folder, dry_run=True):
 
 def main():
     # 設定資料夾路徑
-    txt_folder = "D:/ChengChung/CP6/lab"      # 請修改為您的txt資料夾路徑
-    image_folder = "D:/ChengChung/CP6/pic"  # 請修改為您的image資料夾路徑
+    txt_folder = "D:/ChengChung/End_face_measurement/labels"      # 請修改為您的txt資料夾路徑
+    image_folder = "D:/ChengChung/End_face_measurement/images"  # 請修改為您的image資料夾路徑
     
     print("Image資料夾清理工具")
     print("=" * 40)

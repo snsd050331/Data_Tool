@@ -60,7 +60,7 @@ class VideoFrameExtractor:
     
     def extract_frames_by_interval(self, interval_seconds=1, image_format="jpg"):
         """
-        按時間間隔提取幀
+        按時間間隔提取幀 - 修復版本
         
         參數:
         interval_seconds: 提取間隔（秒）
@@ -81,48 +81,20 @@ class VideoFrameExtractor:
             if fps <= 0:
                 print("錯誤：無法獲取有效的幀率")
                 return False
-                
-            duration = total_frames / fps
             
             print(f"影片資訊：")
-            print(f"- 總幀數: {total_frames}")
             print(f"- 幀率: {fps:.2f} FPS")
-            print(f"- 總時長: {duration:.2f} 秒")
             print(f"- 提取間隔: {interval_seconds} 秒")
             
-            # 確保輸出目錄存在
-            os.makedirs(self.output_folder, exist_ok=True)
-            
-            frame_interval = int(fps * interval_seconds)
-            extracted_count = 0
-            current_frame = 0
-            
-            # 獲取影片名稱（不含路徑和副檔名）
-            video_name = os.path.splitext(os.path.basename(self.video_path))[0]
-            
-            while current_frame < total_frames:
-                # 跳到指定幀
-                cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
-                success, frame = cap.read()
-                
-                if success:
-                    # 計算時間戳
-                    timestamp = current_frame / fps
-                    
-                    # 生成檔案名稱 - 更完整的命名格式
-                    filename = f"{video_name}_frame_{extracted_count:04d}.{image_format}"
-                    filepath = os.path.join(self.output_folder, filename)
-                    
-                    # 保存幀
-                    if cv2.imwrite(filepath, frame):
-                        extracted_count += 1
-                        print(f"提取第 {extracted_count} 幀 (時間: {timestamp:.2f}s) -> {filename}")
-                    else:
-                        print(f"警告：無法保存幀到 {filepath}")
-                else:
-                    print(f"警告：無法讀取第 {current_frame} 幀")
-                
-                current_frame += frame_interval
+            # 如果無法獲取總幀數，使用備用方法
+            if total_frames <= 0:
+                print("- 總幀數: 無法確定（將使用逐幀方法）")
+                return self._extract_by_interval_sequential(cap, fps, interval_seconds, image_format)
+            else:
+                duration = total_frames / fps
+                print(f"- 總幀數: {total_frames}")
+                print(f"- 總時長: {duration:.2f} 秒")
+                return self._extract_by_interval_seek(cap, fps, total_frames, interval_seconds, image_format)
         
         except Exception as e:
             print(f"錯誤：處理過程中發生異常 - {str(e)}")
@@ -130,9 +102,89 @@ class VideoFrameExtractor:
         
         finally:
             cap.release()
+    
+    def _extract_by_interval_seek(self, cap, fps, total_frames, interval_seconds, image_format):
+        """使用 seek 方法提取（當總幀數已知時）"""
+        frame_interval = int(fps * interval_seconds)
+        extracted_count = 0
+        current_frame = 0
+        
+        video_name = os.path.splitext(os.path.basename(self.video_path))[0]
+        
+        while current_frame < total_frames:
+            # 跳到指定幀
+            cap.set(cv2.CAP_PROP_POS_FRAMES, current_frame)
+            success, frame = cap.read()
+            
+            if success:
+                # 計算時間戳
+                timestamp = current_frame / fps
+                
+                # 生成檔案名稱
+                filename = f"{video_name}_frame_{extracted_count:04d}.{image_format}"
+                filepath = os.path.join(self.output_folder, filename)
+                
+                # 保存幀
+                if cv2.imwrite(filepath, frame):
+                    extracted_count += 1
+                    print(f"提取第 {extracted_count} 幀 (時間: {timestamp:.2f}s) -> {filename}")
+                else:
+                    print(f"警告：無法保存幀到 {filepath}")
+            else:
+                print(f"警告：無法讀取第 {current_frame} 幀")
+                break
+            
+            current_frame += frame_interval
         
         print(f"完成！總共提取了 {extracted_count} 幀")
-        return extracted_count > 0  # 返回是否成功提取了至少一幀
+        return extracted_count > 0
+    
+    def _extract_by_interval_sequential(self, cap, fps, interval_seconds, image_format):
+        """使用逐幀方法提取（當總幀數未知時）"""
+        frame_interval = int(fps * interval_seconds)
+        extracted_count = 0
+        current_frame = 0
+        skip_counter = 0
+        
+        video_name = os.path.splitext(os.path.basename(self.video_path))[0]
+        
+        print("使用逐幀掃描方法...")
+        
+        while True:
+            success, frame = cap.read()
+            
+            if not success:
+                break
+            
+            # 檢查是否到了該提取的幀
+            if skip_counter == 0:
+                # 計算時間戳
+                timestamp = current_frame / fps
+                
+                # 生成檔案名稱
+                filename = f"{video_name}_frame_{extracted_count:04d}.{image_format}"
+                filepath = os.path.join(self.output_folder, filename)
+                
+                # 保存幀
+                if cv2.imwrite(filepath, frame):
+                    extracted_count += 1
+                    print(f"提取第 {extracted_count} 幀 (時間: {timestamp:.2f}s) -> {filename}")
+                else:
+                    print(f"警告：無法保存幀到 {filepath}")
+                
+                # 重置跳過計數器
+                skip_counter = frame_interval
+            
+            skip_counter -= 1
+            current_frame += 1
+            
+            # 每處理1000幀顯示進度
+            if current_frame % 1000 == 0:
+                timestamp = current_frame / fps
+                print(f"處理進度: 第 {current_frame} 幀 (時間: {timestamp:.2f}s)")
+        
+        print(f"完成！總共提取了 {extracted_count} 幀")
+        return extracted_count > 0
 
 # 使用範例
 if __name__ == "__main__":
@@ -145,7 +197,7 @@ if __name__ == "__main__":
 
     # 設定影片路徑
     video_path = input("請輸入影片檔案路徑: ").strip('"')  # 去除可能的引號
-   
+    
     output_path = input("\n請輸入輸出資料夾路徑 (直接按Enter使用預設路徑): ").strip('"')
     if not output_path:
         output_path = "extracted_frames"
